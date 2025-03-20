@@ -1,0 +1,68 @@
+name: Build and Deploy to Netlify
+
+on:
+  push:
+    branches:
+      - '**'
+
+concurrency:
+  group: netlify-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Get repository and branch info
+        id: repo-info
+        run: |
+          REPO_NAME=$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          SAFE_BRANCH_NAME=$(echo $BRANCH_NAME | tr '/' '-')
+          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
+          echo "branch_name=$SAFE_BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Vite project
+        run: npm run build
+
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli@^18.0.0
+
+      - name: Create Netlify site if it doesn't exist and store site ID
+        id: create-site
+        run: |
+          SITE_NAME="${{ steps.repo-info.outputs.branch_name }}-madex"
+          SITE_ID=$(netlify sites:list --json | jq -r --arg name "$SITE_NAME" '.[] | select(.name==$name) | .id')
+          if [ -z "$SITE_ID" ]; then
+            echo "Creating new Netlify site for branch ${{ steps.repo-info.outputs.branch_name }}..."
+            SITE_INFO=$(netlify sites:create --name $SITE_NAME --account-slug ${{ secrets.NETLIFY_ACCOUNT_SLUG }} --json)
+            SITE_ID=$(echo $SITE_INFO | jq -r '.id')
+            echo "Created new site with ID: $SITE_ID"
+          else
+            echo "Site already exists with ID: $SITE_ID"
+          fi
+          echo "site_id=$SITE_ID" >> $GITHUB_OUTPUT
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+
+      - name: Deploy to Netlify
+        run: |
+          DEPLOY_URL=$(netlify deploy --prod --dir=out --site="${{ steps.create-site.outputs.site_id }}" --json | jq -r '.url')
+          echo "Deployed to: $DEPLOY_URL"
+          echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+        id: deploy
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
