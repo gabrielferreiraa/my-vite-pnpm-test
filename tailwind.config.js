@@ -7,10 +7,33 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+      },
       animation: {
-        'spin-slow': 'spin 3s linear infinite',
-        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-      }
+        'gradient': 'gradient 8s linear infinite',
+        'shimmer': 'shimmer 2s linear infinite',
+      },
+      keyframes: {
+        gradient: {
+          '0%, 100%': {
+            'background-size': '200% 200%',
+            'background-position': 'left center'
+          },
+          '50%': {
+            'background-size': '200% 200%',
+            'background-position': 'right center'
+          },
+        },
+        shimmer: {
+          '0%': {
+            'background-position': '-1000px 0',
+          },
+          '100%': {
+            'background-position': '1000px 0',
+          },
+        },
+      },
     },
   },
   plugins: [],
