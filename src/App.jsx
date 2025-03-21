@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
+import FileUploader from './components/FileUploader';
 import ThemeToggle from './components/ThemeToggle';
-import MusicPlayer from './components/MusicPlayer';
 
 export default function App() {
   // Internal use, used to capture errors. Do not delete.
@@ -22,18 +22,24 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-slate-900 dark:via-purple-900/20 dark:to-slate-900 transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-purple-950">
       <ThemeToggle />
-      <div className="container mx-auto px-4 py-16">
+      
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="container mx-auto px-4 py-16"
+      >
         <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl font-bold text-center mb-12 text-slate-800 dark:text-white"
+          initial={{ y: -20 }}
+          animate={{ y: 0 }}
+          className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 text-transparent bg-clip-text"
         >
-          Modern Music Player
+          Modern File Uploader
         </motion.h1>
-        <MusicPlayer />
-      </div>
+        
+        <FileUploader />
+      </motion.div>
     </div>
   );
 }
