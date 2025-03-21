@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Play, Pause, SkipForward, Volume2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const playlist = [
   {
@@ -24,80 +24,105 @@ const playlist = [
 ];
 
 export default function MusicPlayer() {
-  const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(0);
-  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const audioRef = useRef(new Audio(playlist[0].url));
 
-  const togglePlay = () => {
+  const handlePlayPause = () => {
     if (isPlaying) {
-      audioRef.current?.pause();
+      audioRef.current.pause();
     } else {
-      audioRef.current?.play();
+      audioRef.current.play().catch(error => {
+        console.error("Playback failed:", error);
+      });
     }
     setIsPlaying(!isPlaying);
   };
 
-  const nextTrack = () => {
-    setCurrentTrack((prev) => (prev + 1) % playlist.length);
+  const handleNext = () => {
+    const nextTrack = (currentTrack + 1) % playlist.length;
+    setCurrentTrack(nextTrack);
+    audioRef.current.src = playlist[nextTrack].url;
+    if (isPlaying) {
+      audioRef.current.play().catch(error => {
+        console.error("Playback failed:", error);
+      });
+    }
   };
 
-  const track = playlist[currentTrack];
+  useEffect(() => {
+    const audio = audioRef.current;
+
+    const updateProgress = () => {
+      const value = (audio.currentTime / audio.duration) * 100;
+      setProgress(isNaN(value) ? 0 : value);
+    };
+
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('ended', handleNext);
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateProgress);
+      audio.removeEventListener('ended', handleNext);
+    };
+  }, [currentTrack]);
 
   return (
-    <div className="w-full max-w-md mx-auto p-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/20 p-6"
-      >
-        <div className="relative w-64 h-64 mx-auto mb-6">
-          <motion.div
-            animate={{ rotate: isPlaying ? 360 : 0 }}
-            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            className="w-full h-full rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg"
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full max-w-md mx-auto p-6 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-slate-200 dark:border-slate-700 shadow-xl"
+    >
+      <div className="relative">
+        <motion.div 
+          animate={{ rotate: isPlaying ? 360 : 0 }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          className="w-48 h-48 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg"
+        >
+          <Volume2 className="w-16 h-16 text-white" />
+        </motion.div>
+      </div>
+
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-1">
+          {playlist[currentTrack].title}
+        </h2>
+        <p className="text-slate-600 dark:text-slate-300">
+          {playlist[currentTrack].artist}
+        </p>
+      </div>
+
+      <div className="mb-6">
+        <div className="h-1 w-full bg-slate-200 dark:bg-slate-700 rounded-full">
+          <div 
+            className="h-full bg-purple-500 rounded-full transition-all duration-100"
+            style={{ width: `${progress}%` }}
           />
-          <div className="absolute inset-4 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur" />
-          <Volume2 className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 text-purple-500 dark:text-purple-400" />
         </div>
+      </div>
 
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">
-            {track.title}
-          </h2>
-          <p className="text-slate-600 dark:text-slate-300">{track.artist}</p>
-        </div>
+      <div className="flex items-center justify-center gap-6">
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={handlePlayPause}
+          className="p-4 rounded-full bg-purple-500 hover:bg-purple-600 text-white shadow-lg transition-colors"
+        >
+          {isPlaying ? (
+            <Pause className="w-6 h-6" />
+          ) : (
+            <Play className="w-6 h-6" />
+          )}
+        </motion.button>
 
-        <div className="flex justify-center items-center gap-6">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={togglePlay}
-            className="p-4 rounded-full bg-purple-500 text-white shadow-lg hover:bg-purple-600 transition-colors"
-          >
-            {isPlaying ? (
-              <Pause className="w-8 h-8" />
-            ) : (
-              <Play className="w-8 h-8" />
-            )}
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={nextTrack}
-            className="p-4 rounded-full bg-pink-500 text-white shadow-lg hover:bg-pink-600 transition-colors"
-          >
-            <SkipForward className="w-8 h-8" />
-          </motion.button>
-        </div>
-
-        <audio
-          ref={audioRef}
-          src={track.url}
-          onEnded={nextTrack}
-          onError={(e) => console.error("Audio playback error:", e)}
-        />
-      </motion.div>
-    </div>
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={handleNext}
+          className="p-4 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white shadow-lg transition-colors"
+        >
+          <SkipForward className="w-6 h-6" />
+        </motion.button>
+      </div>
+    </motion.div>
   );
 }
