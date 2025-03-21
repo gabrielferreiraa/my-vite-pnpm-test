@@ -7,10 +7,18 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+      },
       animation: {
-        'spin-slow': 'spin 3s linear infinite',
-        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-      }
+        'button-press': 'button-press 0.2s ease-in-out',
+      },
+      keyframes: {
+        'button-press': {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(0.95)' },
+        },
+      },
     },
   },
   plugins: [],
