@@ -37,18 +37,14 @@ jobs:
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
           echo "branch_name=$SAFE_BRANCH_NAME" >> $GITHUB_OUTPUT
 
-      - name: Cache Netlify CLI
-        uses: actions/cache@v3
-        id: netlify-cli-cache
-        with:
-          path: ~/.npm-global
-          key: ${{ runner.os }}-netlify-cli-18.0.0
-
       - name: Install dependencies
         run: pnpm install
 
       - name: Build Vite project
         run: pnpm build
+
+      - name: Install Netlify CLI
+        run: pnpm add -g netlify-cli@^18.0.0
 
       - name: Create Netlify site if it doesn't exist and store site ID
         id: create-site
