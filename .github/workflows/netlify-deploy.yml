@@ -53,8 +53,8 @@ jobs:
           export PATH=~/.npm-global/bin:$PATH
           echo "PATH=$PATH" >> $GITHUB_ENV
           
-          # Instalar dependências
-          pnpm install --frozen-lockfile --prefer-offline &
+          # Instalar dependências (sem --frozen-lockfile já que pode não existir pnpm-lock.yaml)
+          pnpm install --prefer-offline &
           
           # Instalar Netlify CLI apenas se não estiver em cache
           if [ "${{ steps.netlify-cli-cache.outputs.cache-hit }}" != "true" ]; then
@@ -63,11 +63,24 @@ jobs:
           fi
           
           wait
+          
+          # Verificar se as dependências foram instaladas corretamente
+          ls -la node_modules/.bin/
 
       - name: Build Vite project
         run: |
-          # Usar o comando padrão do pnpm build sem modificações extras
-          pnpm build
+          # Usar o caminho completo para garantir que o vite seja encontrado
+          echo "Conteúdo da pasta node_modules/.bin:"
+          ls -la node_modules/.bin/ || echo "Diretório não encontrado"
+          
+          # Verificar se o binário do vite foi instalado
+          if [ -f "node_modules/.bin/vite" ]; then
+            echo "Usando vite local"
+            ./node_modules/.bin/vite build
+          else
+            echo "Tentando usar pnpm exec"
+            pnpm exec vite build || pnpm dlx vite build
+          fi
         env:
           NODE_ENV: production
 
