@@ -20,16 +20,13 @@ export default function ThemeToggle() {
 
   return (
     <motion.button
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.9 }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
       onClick={() => setDarkMode(!darkMode)}
-      className="fixed top-4 right-4 p-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/20 shadow-lg dark:bg-slate-800/20 dark:border-slate-700/20"
+      className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+      aria-label="Toggle theme"
     >
-      {darkMode ? (
-        <Sun className="w-6 h-6 text-yellow-400" />
-      ) : (
-        <Moon className="w-6 h-6 text-slate-700" />
-      )}
+      {darkMode ? <Sun size={20} /> : <Moon size={20} />}
     </motion.button>
   );
 }
