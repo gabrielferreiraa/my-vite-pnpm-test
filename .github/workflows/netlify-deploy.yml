@@ -66,8 +66,8 @@ jobs:
 
       - name: Build Vite project
         run: |
-          # Otimizar build do Vite
-          pnpm build --mode production
+          # Usar o comando padrão do pnpm build sem modificações extras
+          pnpm build
         env:
           NODE_ENV: production
 
