@@ -50,9 +50,6 @@ jobs:
       - name: Build Vite project
         run: pnpm build
 
-      - name: Install Netlify CLI
-        run: pnpm add -g netlify-cli@^18.0.0
-
       - name: Create Netlify site if it doesn't exist and store site ID
         id: create-site
         run: |
