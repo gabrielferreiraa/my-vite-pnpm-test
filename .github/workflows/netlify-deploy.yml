@@ -16,11 +16,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # Checkout apenas o último commit para acelerar
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
           version: 8
+          run_install: false  # Não instalar ainda para usar o cache
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -36,21 +39,48 @@ jobs:
           SAFE_BRANCH_NAME=$(echo $BRANCH_NAME | tr '/' '-')
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
           echo "branch_name=$SAFE_BRANCH_NAME" >> $GITHUB_OUTPUT
-
-      - name: Install dependencies
-        run: pnpm install
+      
+      - name: Cache Netlify CLI
+        uses: actions/cache@v3
+        id: netlify-cli-cache
+        with:
+          path: ~/.npm-global
+          key: ${{ runner.os }}-netlify-cli-18.0.0
+      
+      - name: Install dependencies and Netlify CLI in parallel
+        run: |
+          mkdir -p ~/.npm-global
+          export PATH=~/.npm-global/bin:$PATH
+          echo "PATH=$PATH" >> $GITHUB_ENV
+          
+          # Instalar dependências
+          pnpm install --frozen-lockfile --prefer-offline &
+          
+          # Instalar Netlify CLI apenas se não estiver em cache
+          if [ "${{ steps.netlify-cli-cache.outputs.cache-hit }}" != "true" ]; then
+            npm config set prefix ~/.npm-global
+            npm install -g netlify-cli@^18.0.0 &
+          fi
+          
+          wait
 
       - name: Build Vite project
-        run: pnpm build
+        run: |
+          # Otimizar build do Vite
+          pnpm build --mode production
+        env:
+          NODE_ENV: production
 
-      - name: Install Netlify CLI
-        run: pnpm add -g netlify-cli@^18.0.0
-
-      - name: Create Netlify site if it doesn't exist and store site ID
+      - name: Find or create Netlify site
         id: create-site
         run: |
-          SITE_NAME="${{ steps.repo-info.outputs.branch_name }}-madex"
-          SITE_ID=$(netlify sites:list --json | jq -r --arg name "$SITE_NAME" '.[] | select(.name==$name) | .id')
+          export PATH=~/.npm-global/bin:$PATH
+          SITE_NAME="dot-${{ steps.repo-info.outputs.branch_name }}"
+          
+          # Usar API direta para verificar existência do site
+          netlify api listSites --data '{"filter":"all"}' > sites.json
+          SITE_ID=$(cat sites.json | jq -r --arg name "$SITE_NAME" '.[] | select(.name==$name) | .id')
+          
           if [ -z "$SITE_ID" ]; then
             echo "Creating new Netlify site for branch ${{ steps.repo-info.outputs.branch_name }}..."
             SITE_INFO=$(netlify sites:create --name $SITE_NAME --account-slug ${{ secrets.NETLIFY_ACCOUNT_SLUG }} --json)
@@ -59,13 +89,17 @@ jobs:
           else
             echo "Site already exists with ID: $SITE_ID"
           fi
+          
           echo "site_id=$SITE_ID" >> $GITHUB_OUTPUT
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
 
       - name: Deploy to Netlify
         run: |
-          DEPLOY_URL=$(netlify deploy --prod --dir=dist --site="${{ steps.create-site.outputs.site_id }}" --json | jq -r '.url')
+          export PATH=~/.npm-global/bin:$PATH
+          # Usar deploy direto sem verificações adicionais
+          DEPLOY_OUTPUT=$(netlify deploy --prod --dir=dist --site="${{ steps.create-site.outputs.site_id }}" --json)
+          DEPLOY_URL=$(echo $DEPLOY_OUTPUT | jq -r '.url')
           echo "Deployed to: $DEPLOY_URL"
           echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
         id: deploy
