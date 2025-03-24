@@ -1,5 +1,4 @@
 import { Sun, Moon } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
 export default function ThemeToggle() {
@@ -19,17 +18,12 @@ export default function ThemeToggle() {
   }, [darkMode]);
 
   return (
-    <motion.button
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.9 }}
+    <button
       onClick={() => setDarkMode(!darkMode)}
-      className="fixed top-4 right-4 p-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/20 shadow-lg dark:bg-slate-800/20 dark:border-slate-700/20"
+      className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+      aria-label="Toggle theme"
     >
-      {darkMode ? (
-        <Sun className="w-6 h-6 text-yellow-400" />
-      ) : (
-        <Moon className="w-6 h-6 text-slate-700" />
-      )}
-    </motion.button>
+      {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+    </button>
   );
 }
