@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Play, Pause, SkipForward, Volume2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import AudioVisualizer from './AudioVisualizer';
 
 const tracks = [
   {
@@ -26,14 +27,24 @@ const tracks = [
 export default function MusicPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(0);
-  const audioRef = useRef(null);
+  const audioRef = useRef(new Audio(tracks[currentTrack].url));
 
   const togglePlay = () => {
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
     setIsPlaying(!isPlaying);
   };
 
   const nextTrack = () => {
+    audioRef.current.pause();
     setCurrentTrack((prev) => (prev + 1) % tracks.length);
+    audioRef.current.src = tracks[currentTrack].url;
+    if (isPlaying) {
+      audioRef.current.play();
+    }
   };
 
   return (
@@ -49,6 +60,11 @@ export default function MusicPlayer() {
           transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
           className="w-full h-full rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-xl"
         />
+      </div>
+
+      {/* Audio Visualizer */}
+      <div className="mb-6">
+        <AudioVisualizer audioRef={audioRef} isPlaying={isPlaying} />
       </div>
 
       {/* Track Info */}
