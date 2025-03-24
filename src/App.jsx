@@ -1,9 +1,24 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './components/ThemeToggle';
 import MusicPlayer from './components/MusicPlayer';
 
 export default function App() {
+  const [darkMode, setDarkMode] = useState(
+    localStorage.theme === 'dark' || 
+    (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  );
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.theme = 'dark';
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.theme = 'light';
+    }
+  }, [darkMode]);
+
   // Internal use, used to capture errors. Do not delete.
   useEffect(() => {
     window.addEventListener('error', function ({ message, filename, lineno, colno, error }) {
@@ -21,19 +36,21 @@ export default function App() {
     };
   }, []);
 
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-slate-900 dark:via-purple-900/20 dark:to-slate-900 transition-colors duration-300">
-      <ThemeToggle />
-      <div className="container mx-auto px-4 py-16">
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl font-bold text-center mb-12 text-slate-800 dark:text-white"
-        >
-          Modern Music Player
-        </motion.h1>
-        <MusicPlayer />
+    <div className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-300
+      ${darkMode 
+        ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' 
+        : 'bg-gradient-to-br from-purple-50 via-white to-blue-50'}`}
+    >
+      <div className="fixed top-4 right-4">
+        <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       </div>
+      
+      <MusicPlayer />
     </div>
   );
 }
