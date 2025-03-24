@@ -1,35 +1,86 @@
+import { useState } from 'react';
 import ThemeToggle from './ThemeToggle';
-import { Menu } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Navbar() {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <nav className="fixed w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-50 border-b border-slate-200 dark:border-slate-800">
+    <nav className="fixed w-full bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl z-50 border-b border-slate-200/50 dark:border-slate-800/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex-shrink-0">
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+        <div className="flex items-center justify-between h-20">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex-shrink-0"
+          >
+            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-fuchsia-600 bg-clip-text text-transparent">
               SaaSFlow
             </span>
-          </div>
+          </motion.div>
           
           <div className="hidden md:flex items-center space-x-8">
-            <a href="#features" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400">Features</a>
-            <a href="#pricing" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400">Pricing</a>
-            <a href="#testimonials" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400">Testimonials</a>
+            {['Features', 'Pricing', 'Testimonials'].map((item, index) => (
+              <motion.a
+                key={item}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                href={`#${item.toLowerCase()}`}
+                className="text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+              >
+                {item}
+              </motion.a>
+            ))}
             <ThemeToggle />
-            <button className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-2 rounded-lg hover:opacity-90 transition-opacity">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white px-6 py-2 rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300"
+            >
               Get Started
-            </button>
+            </motion.button>
           </div>
           
           <div className="md:hidden flex items-center space-x-4">
             <ThemeToggle />
-            <button className="text-slate-600 dark:text-slate-300">
-              <Menu size={24} />
+            <button 
+              onClick={() => setIsOpen(!isOpen)}
+              className="text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+            >
+              {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl"
+          >
+            <div className="px-4 py-6 space-y-4">
+              {['Features', 'Pricing', 'Testimonials'].map((item) => (
+                <a
+                  key={item}
+                  href={`#${item.toLowerCase()}`}
+                  className="block text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item}
+                </a>
+              ))}
+              <button className="w-full bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white px-6 py-2 rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
+                Get Started
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
