@@ -50,10 +50,9 @@ jobs:
       - name: Check if Netlify site exists or needs to be created
         id: site-check
         run: |
-          SITE_NAME="dot-${{ steps.repo-info.outputs.repo_name }}-${{ steps.repo-info.outputs.branch_name }}"
+          SITE_NAME="dot-${{ steps.repo-info.outputs.branch_name }}"
           echo "Looking for site with name: $SITE_NAME"
-          
-          # Verificar se o site já existe
+
           SITE_ID=$(netlify sites:list --json | jq -r --arg name "$SITE_NAME" '.[] | select(.name==$name) | .id')
           
           if [ -z "$SITE_ID" ]; then
@@ -69,7 +68,6 @@ jobs:
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
 
-      # Etapa executada apenas se o site não existir
       - name: Create new Netlify site
         id: create-site
         if: steps.site-check.outputs.site_exists == 'false'
@@ -82,11 +80,9 @@ jobs:
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
 
-      # Deploy para site novo ou existente
       - name: Deploy to Netlify
         id: deploy
         run: |
-          # Determinar qual ID do site usar
           if [ "${{ steps.site-check.outputs.site_exists }}" == "true" ]; then
             SITE_ID="${{ steps.site-check.outputs.site_id }}"
           else
