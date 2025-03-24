@@ -46,28 +46,67 @@ jobs:
       - name: Install Netlify CLI
         run: pnpm add -g netlify-cli@^18.0.0
 
-      - name: Create Netlify site if it doesn't exist and store site ID
-        id: create-site
+      # Etapa modificada para tratar os dois cenários: criação e atualização
+      - name: Check if Netlify site exists or needs to be created
+        id: site-check
         run: |
-          SITE_NAME="dot-${{ steps.repo-info.outputs.branch_name }}"
+          SITE_NAME="dot-${{ steps.repo-info.outputs.repo_name }}-${{ steps.repo-info.outputs.branch_name }}"
+          echo "Looking for site with name: $SITE_NAME"
+          
+          # Verificar se o site já existe
           SITE_ID=$(netlify sites:list --json | jq -r --arg name "$SITE_NAME" '.[] | select(.name==$name) | .id')
+          
           if [ -z "$SITE_ID" ]; then
-            echo "Creating new Netlify site for branch ${{ steps.repo-info.outputs.branch_name }}..."
-            SITE_INFO=$(netlify sites:create --name $SITE_NAME --account-slug ${{ secrets.NETLIFY_ACCOUNT_SLUG }} --json)
-            SITE_ID=$(echo $SITE_INFO | jq -r '.id')
-            echo "Created new site with ID: $SITE_ID"
+            echo "Site does not exist yet. Will create a new one."
+            echo "site_exists=false" >> $GITHUB_OUTPUT
+            echo "site_name=$SITE_NAME" >> $GITHUB_OUTPUT
           else
             echo "Site already exists with ID: $SITE_ID"
+            echo "site_exists=true" >> $GITHUB_OUTPUT
+            echo "site_id=$SITE_ID" >> $GITHUB_OUTPUT
+            echo "site_name=$SITE_NAME" >> $GITHUB_OUTPUT
           fi
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+
+      # Etapa executada apenas se o site não existir
+      - name: Create new Netlify site
+        id: create-site
+        if: steps.site-check.outputs.site_exists == 'false'
+        run: |
+          echo "Creating new Netlify site with name ${{ steps.site-check.outputs.site_name }}..."
+          SITE_INFO=$(netlify sites:create --name ${{ steps.site-check.outputs.site_name }} --account-slug ${{ secrets.NETLIFY_ACCOUNT_SLUG }} --json)
+          SITE_ID=$(echo $SITE_INFO | jq -r '.id')
+          echo "Created new site with ID: $SITE_ID"
           echo "site_id=$SITE_ID" >> $GITHUB_OUTPUT
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
 
+      # Deploy para site novo ou existente
       - name: Deploy to Netlify
-        run: |
-          DEPLOY_URL=$(netlify deploy --prod --dir=dist --site="${{ steps.create-site.outputs.site_id }}" --json | jq -r '.url')
-          echo "Deployed to: $DEPLOY_URL"
-          echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
         id: deploy
+        run: |
+          # Determinar qual ID do site usar
+          if [ "${{ steps.site-check.outputs.site_exists }}" == "true" ]; then
+            SITE_ID="${{ steps.site-check.outputs.site_id }}"
+          else
+            SITE_ID="${{ steps.create-site.outputs.site_id }}"
+          fi
+          
+          echo "Deploying to Netlify site ID: $SITE_ID"
+          DEPLOY_RESULT=$(netlify deploy --prod --dir=dist --site="$SITE_ID" --json)
+          DEPLOY_URL=$(echo $DEPLOY_RESULT | jq -r '.url')
+          DEPLOY_LOGS_URL=$(echo $DEPLOY_RESULT | jq -r '.logs')
+          
+          echo "Deployed to: $DEPLOY_URL"
+          echo "Logs available at: $DEPLOY_LOGS_URL"
+          echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "logs_url=$DEPLOY_LOGS_URL" >> $GITHUB_OUTPUT
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          
+      - name: Comment on commit with deploy URL
+        run: |
+          echo "🚀 Site deployed successfully!"
+          echo "📝 Deploy URL: ${{ steps.deploy.outputs.deploy_url }}"
+          echo "📊 Deployment logs: ${{ steps.deploy.outputs.logs_url }}"
